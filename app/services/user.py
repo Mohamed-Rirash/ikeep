@@ -8,34 +8,13 @@ from app.config.security import generate_token, get_token_payload, hash_password
 from app.models.user import User, UserToken
 from app.services.email import send_account_activation_confirmation_email, send_account_verification_email, send_password_reset_email
 from app.utils.email_context import FORGOT_PASSWORD, USER_VERIFY_ACCOUNT
+from app.utils.keys_generator import generate_key_pair
 from app.utils.string import unique_string
 from app.config.settings import get_settings
 
 settings = get_settings()
 
-# async def create_user_account(data, session, background_tasks):
-    
-#     user_exist = session.query(User).filter(User.email == data.email).first()
-#     if user_exist:
-#         raise HTTPException(status_code=400, detail="Email is already exists.")
-    
-#     if not is_password_strong_enough(data.password):
-#         raise HTTPException(status_code=400, detail="Please provide a strong password.")
-    
-    
-#     user = User()
-#     user.name = data.name
-#     user.email = data.email
-#     user.password = hash_password(data.password)
-#     user.is_active = False
-#     user.updated_at = datetime.utcnow()
-#     session.add(user)
-#     session.commit()
-#     session.refresh(user)
-    
-#     # Account Verification Email
-#     await send_account_verification_email(user, background_tasks=background_tasks)
-#     return user
+
 async def create_user_account(data, session, background_tasks):
     
     user_exist = session.query(User).filter(User.email == data.email).first()
@@ -44,11 +23,13 @@ async def create_user_account(data, session, background_tasks):
     
     if not is_password_strong_enough(data.password):
         raise HTTPException(status_code=400, detail="Please provide a strong password.")
-    
+    private_key, public_key = generate_key_pair()
     user = User()
     user.name = data.name
     user.email = data.email
     user.password = hash_password(data.password)
+    user.public_key = public_key
+    user.private_key = private_key
     user.is_active = False
     user.updated_at = datetime.utcnow()
     session.add(user)

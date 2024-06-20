@@ -9,6 +9,8 @@ class User(Base):
     name = Column(String(150))
     email = Column(String(255), unique=True, index=True)
     password = Column(String(100))
+    public_key = Column(String)
+    private_key = Column(String)
     is_active = Column(Boolean, default=False)
     verified_at = Column(DateTime, nullable=True, default=None)
     updated_at = Column(DateTime, nullable=True, default=None, onupdate=datetime.now)
