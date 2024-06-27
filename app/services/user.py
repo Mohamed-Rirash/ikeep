@@ -3,7 +3,7 @@
 from datetime import datetime, timedelta
 import logging
 from sqlalchemy.orm import joinedload
-from fastapi import HTTPException
+from fastapi import HTTPException, Response
 from app.config.security import generate_token, get_token_payload, hash_password, is_password_strong_enough, load_user, str_decode, str_encode, verify_password
 from app.models.user import User, UserToken
 from app.services.email import send_account_activation_confirmation_email, send_account_verification_email, send_password_reset_email
@@ -67,7 +67,7 @@ async def activate_user_account(data, session, background_tasks):
     return user
 
 
-async def get_login_token(data, session):
+async def get_login_token(data, session ,response):
     # verify the email and password
     # Verify that user account is verified
     # Verify user account is active
@@ -87,7 +87,7 @@ async def get_login_token(data, session):
         raise HTTPException(status_code=400, detail="Your account has been dactivated. Please contact support.")
         
     # Generate the JWT Token
-    return _generate_tokens(user, session)
+    return _generate_tokens(user, session, response)
 
 
 async def get_refresh_token(refresh_token, session):
@@ -112,7 +112,7 @@ async def get_refresh_token(refresh_token, session):
     return _generate_tokens(user_token.user, session)
 
 
-def _generate_tokens(user, session):
+def _generate_tokens(user, session, response: Response):
     refresh_key = unique_string(100)
     access_key = unique_string(50)
     rt_expires = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
@@ -134,13 +134,27 @@ def _generate_tokens(user, session):
     }
 
     at_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = generate_token(at_payload, settings.JWT_SECRET, settings.JWT_ALGORITHM, at_expires)
+    access_token = generate_token(
+        at_payload, settings.JWT_SECRET, settings.JWT_ALGORITHM, at_expires)
 
-    rt_payload = {"sub": str_encode(str(user.id)), "t": refresh_key, 'a': access_key}
-    refresh_token = generate_token(rt_payload, settings.SECRET_KEY, settings.JWT_ALGORITHM, rt_expires)
+    rt_payload = {"sub": str_encode(
+        str(user.id)), "t": refresh_key, 'a': access_key}
+    refresh_token = generate_token(
+        rt_payload, settings.SECRET_KEY, settings.JWT_ALGORITHM, rt_expires)
+
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        # Makes the cookie accessible only via HTTP (not JavaScript)
+        httponly=True,
+        max_age=rt_expires.seconds,
+        expires=rt_expires,
+        samesite="lax",  # Can be set to "strict", "lax", or "none"
+        secure=True  # Ensures the cookie is sent only over HTTPS
+    )
+
     return {
         "access_token": access_token,
-        "refresh_token": refresh_token,
         "expires_in": at_expires.seconds
     }
     

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, status, Header
+from fastapi import APIRouter, BackgroundTasks, Depends, Response, status, Header
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -42,8 +42,8 @@ async def verify_user_account(data: VerifyUserRequest, background_tasks: Backgro
 
 
 @guest_router.post("/login", status_code=status.HTTP_200_OK, response_model=LoginResponse)
-async def user_login(data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
-    return await user.get_login_token(data, session)
+async def user_login(response: Response, data: OAuth2PasswordRequestForm = Depends(), session: Session = Depends(get_session)):
+    return await user.get_login_token(data, session, response)
 
 
 @guest_router.post("/refresh", status_code=status.HTTP_200_OK, response_model=LoginResponse)
