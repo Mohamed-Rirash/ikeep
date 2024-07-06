@@ -9,7 +9,6 @@ from datetime import datetime, timedelta
 from app.config.database import get_session
 from app.config.settings import get_settings
 from app.models.user import UserToken
-from app.utils.cookies import OAuth2PasswordBearerWithCookie
 
 SPECIAL_CHARACTERS = ['@', '#', '$', '%', '=', ':', '?', '.', '/', '|', '~', '>']
 
