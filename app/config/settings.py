@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = int(
         os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 3))
     REFRESH_TOKEN_EXPIRE_MINUTES: int = int(
-        os.getenv("REFRESH_TOKEN_EXPIRE_MINUTES", 1440))
+        os.getenv("REFRESH_TOKEN_EXPIRE_MINUTES", 69000))
 
     # App Secret Key
     SECRET_KEY: str = os.getenv("SECRET_KEY")

@@ -89,7 +89,7 @@ async def get_login_token(data, session, response):
     return _generate_tokens(user, session, response)
 
 
-async def get_refresh_token(request, session):
+async def get_refresh_token(request, session, response):
     refresh_token = request.cookies.get('refresh_token')
 
     if not refresh_token:
@@ -97,8 +97,6 @@ async def get_refresh_token(request, session):
             status_code=status.HTTP_400_BAD_REQUEST, detail="Refresh token not found in cookies."
         )
 
-    # Debug print to verify refresh token
-    print(f"Refresh token: {refresh_token}")
 
     token_payload = get_token_payload(
         refresh_token, settings.SECRET_KEY, settings.JWT_ALGORITHM)
@@ -127,7 +125,7 @@ async def get_refresh_token(request, session):
     session.add(user_token)
     session.commit()
 
-    return _generate_tokens(user_token.user, session)
+    return _generate_tokens(user_token.user, session, response)
 
 
 def _generate_tokens(user, session, response):
@@ -165,9 +163,9 @@ def _generate_tokens(user, session, response):
         value=refresh_token,
         httponly=True,
         max_age=rt_expires.seconds,
-        expires=rt_expires,
-        samesite="lax",
-        secure=True  # Ensure this matches your environment (HTTPS)
+        # expires=rt_expires,  # Remove this line to avoid conflicts
+        samesite=None,
+        secure=False  # Set to False during development if not using HTTPS
     )
 
     return {

@@ -48,8 +48,8 @@ async def user_login(response: Response, data: OAuth2PasswordRequestForm = Depen
 
 
 @guest_router.post("/refresh", status_code=status.HTTP_200_OK, response_model=LoginResponse)
-async def refresh_token(request: Request,session: Session = Depends(get_session)):
-    return await user.get_refresh_token(request, session)
+async def refresh_token(response: Response, request: Request, session: Session = Depends(get_session)):
+    return await user.get_refresh_token(request, session, response)
 
 
 @guest_router.post("/forgot-password", status_code=status.HTTP_200_OK)
