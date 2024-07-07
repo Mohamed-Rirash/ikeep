@@ -67,30 +67,39 @@ async def activate_user_account(data, session, background_tasks):
     return user
 
 
-async def get_login_token(data, session ,response):
-    # verify the email and password
-    # Verify that user account is verified
-    # Verify user account is active
-    # generate access_token and refresh_token and ttl
-    
+async def get_login_token(data, session, response):
     user = await load_user(data.username, session)
     if not user:
-        raise HTTPException(status_code=400, detail="Email is not registered with us.")
-    
+        raise HTTPException(
+            status_code=400, detail="Email is not registered with us.")
+
     if not verify_password(data.password, user.password):
-        raise HTTPException(status_code=400, detail="Incorrect email or password.")
-    
+        raise HTTPException(
+            status_code=400, detail="Incorrect email or password.")
+
     if not user.verified_at:
-        raise HTTPException(status_code=400, detail="Your account is not verified. Please check your email inbox to verify your account.")
-    
+        raise HTTPException(
+            status_code=400, detail="Your account is not verified. Please check your email inbox to verify your account.")
+
     if not user.is_active:
-        raise HTTPException(status_code=400, detail="Your account has been dactivated. Please contact support.")
-        
-    # Generate the JWT Token
+        raise HTTPException(
+            status_code=400, detail="Your account has been deactivated. Please contact support.")
+
+    # Generate the JWT Token and set refresh token in cookies
     return _generate_tokens(user, session, response)
 
 
-async def get_refresh_token(response, refresh_token, session):
+async def get_refresh_token(request, session):
+    refresh_token = request.cookies.get('refresh_token')
+
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Refresh token not found in cookies."
+        )
+
+    # Debug print to verify refresh token
+    print(f"Refresh token: {refresh_token}")
+
     token_payload = get_token_payload(
         refresh_token, settings.SECRET_KEY, settings.JWT_ALGORITHM)
     if not token_payload:
@@ -118,10 +127,10 @@ async def get_refresh_token(response, refresh_token, session):
     session.add(user_token)
     session.commit()
 
-    return _generate_tokens(user_token.user, session, response)
+    return _generate_tokens(user_token.user, session)
 
 
-def _generate_tokens(user, session, response: Response):
+def _generate_tokens(user, session, response):
     refresh_key = unique_string(100)
     access_key = unique_string(50)
     rt_expires = timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
@@ -154,18 +163,18 @@ def _generate_tokens(user, session, response: Response):
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
-        # Makes the cookie accessible only via HTTP (not JavaScript)
         httponly=True,
         max_age=rt_expires.seconds,
         expires=rt_expires,
-        samesite="lax",  # Can be set to "strict", "lax", or "none"
-        secure=True  # Ensures the cookie is sent only over HTTPS
+        samesite="lax",
+        secure=True  # Ensure this matches your environment (HTTPS)
     )
 
     return {
         "access_token": access_token,
         "expires_in": at_expires.seconds
     }
+
     
 async def email_forgot_password_link(data, background_tasks, session):
     user = await load_user(data.email, session)
