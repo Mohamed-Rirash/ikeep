@@ -47,9 +47,8 @@ async def user_login(response: Response, data: OAuth2PasswordRequestForm = Depen
 
 
 @guest_router.post("/refresh", status_code=status.HTTP_200_OK, response_model=LoginResponse)
-async def refresh_token(refresh_token=Header(), session: Session = Depends(get_session)):
-    return await user.get_refresh_token(refresh_token, session)
-
+async def refresh_token(response: Response, refresh_token: str = Header(...), session: Session = Depends(get_session)):
+    return await user.get_refresh_token(response , refresh_token, session)
 
 @guest_router.post("/forgot-password", status_code=status.HTTP_200_OK)
 async def forgot_password(data: EmailRequest, background_tasks: BackgroundTasks, session: Session = Depends(get_session)):

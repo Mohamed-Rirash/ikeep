@@ -9,14 +9,13 @@ from datetime import datetime, timedelta
 from app.config.database import get_session
 from app.config.settings import get_settings
 from app.models.user import UserToken
-from app.utils.cookies import OAuth2PasswordBearerWithCookie
 
 SPECIAL_CHARACTERS = ['@', '#', '$', '%', '=', ':', '?', '.', '/', '|', '~', '>']
 
 settings = get_settings()
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearerWithCookie(tokenUrl="/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
 def hash_password(password):

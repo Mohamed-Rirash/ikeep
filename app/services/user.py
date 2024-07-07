@@ -11,7 +11,7 @@ from app.utils.email_context import FORGOT_PASSWORD, USER_VERIFY_ACCOUNT
 from app.utils.keys_generator import generate_key_pair
 from app.utils.string import unique_string
 from app.config.settings import get_settings
-
+from fastapi import status
 settings = get_settings()
 
 
@@ -90,26 +90,35 @@ async def get_login_token(data, session ,response):
     return _generate_tokens(user, session, response)
 
 
-async def get_refresh_token(refresh_token, session):
-    token_payload = get_token_payload(refresh_token, settings.SECRET_KEY, settings.JWT_ALGORITHM)
+async def get_refresh_token(response, refresh_token, session):
+    token_payload = get_token_payload(
+        refresh_token, settings.SECRET_KEY, settings.JWT_ALGORITHM)
     if not token_payload:
-        raise HTTPException(status_code=400, detail="Invalid Request.")
-    
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Request.")
+
     refresh_key = token_payload.get('t')
     access_key = token_payload.get('a')
     user_id = str_decode(token_payload.get('sub'))
-    user_token = session.query(UserToken).options(joinedload(UserToken.user)).filter(UserToken.refresh_key == refresh_key,
-                                                 UserToken.access_key == access_key,
-                                                 UserToken.user_id == user_id,
-                                                 UserToken.expires_at > datetime.utcnow()
-                                                 ).first()
+
+    user_token = session.query(UserToken).options(joinedload(UserToken.user)).filter(
+        UserToken.refresh_key == refresh_key,
+        UserToken.access_key == access_key,
+        UserToken.user_id == user_id,
+        UserToken.expires_at > datetime.utcnow()
+    ).first()
+
     if not user_token:
-        raise HTTPException(status_code=400, detail="Invalid Request.")
-    
-    user_token.expires_at = datetime.utcnow()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Request.")
+
+    # Update token expiration time
+    user_token.expires_at = datetime.utcnow(
+    ) + timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES)
     session.add(user_token)
     session.commit()
-    return _generate_tokens(user_token.user, session)
+
+    return _generate_tokens(user_token.user, session, response)
 
 
 def _generate_tokens(user, session, response: Response):
