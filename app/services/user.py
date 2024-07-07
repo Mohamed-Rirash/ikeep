@@ -158,16 +158,20 @@ def _generate_tokens(user, session, response):
     refresh_token = generate_token(
         rt_payload, settings.SECRET_KEY, settings.JWT_ALGORITHM, rt_expires)
 
+    one_day = timedelta(days=1)
+
+
+    expiry_time = datetime.utcnow() + one_day
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        max_age=rt_expires.seconds,
-        # expires=rt_expires,  # Remove this line to avoid conflicts
+        max_age=one_day.total_seconds(),  # This sets max_age to 86400 seconds (1 day)
+        # Format the expiration time
+        expires=expiry_time.strftime("%a, %d-%b-%Y %H:%M:%S GMT"),
         samesite=None,
         secure=False  # Set to False during development if not using HTTPS
     )
-
     return {
         "access_token": access_token,
         "expires_in": at_expires.seconds
